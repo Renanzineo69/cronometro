@@ -18,18 +18,21 @@ class Stopwatch(QWidget):
         self.start_button.clicked.connect(self.toggle_stopwatch)
 
         self.reset_button = QPushButton("Voltar")
-        self.reset_button.setVisible(False)
-        self.reset_button.clicked.connect(self.record_lap)
+        self.reset_button.setVisible(False)  # Inicialmente invisível
+        self.reset_button.clicked.connect(self.handle_reset_or_lap)  # Decide entre resetar ou marcar volta
 
         # Layout de botões
         self.layout.addWidget(self.stopwatch_display)
+
+        # Tabela de voltas, inicialmente invisível
+        self.lap_list_display = QLabel("Voltas | Tempo das Voltas | Tempo Geral")
+        self.lap_list_display.setAlignment(Qt.AlignCenter)  # Centralizar a tabela
+        self.lap_list_display.setVisible(False)  # Inicialmente invisível
+        self.layout.addWidget(self.lap_list_display)  # Posiciona a tabela logo abaixo do cronômetro
+
+        # Layout dos botões
         self.layout.addWidget(self.start_button)
         self.layout.addWidget(self.reset_button)
-
-        # Lista de voltas
-        self.lap_list_display = QLabel("Voltas | Tempo das Voltas | Tempo Geral")
-        self.lap_list_display.setVisible(False)  # Inicialmente invisível
-        self.layout.addWidget(self.lap_list_display)
 
         # Lógica do cronômetro
         self.timer = QTimer(self)
@@ -51,7 +54,6 @@ class Stopwatch(QWidget):
             self.start_button.setText("Pausar Cronômetro")
             self.reset_button.setText("Voltar")
             self.reset_button.setVisible(True)
-            self.lap_list_display.setVisible(True)  # Tornar visível a lista de voltas
             self.running = True
         else:
             # Pausar
@@ -62,7 +64,14 @@ class Stopwatch(QWidget):
             self.reset_button.setVisible(True)
             self.running = False
 
+    def handle_reset_or_lap(self):
+        if self.reset_button.text() == "Resetar Cronômetro":
+            self.reset_stopwatch()
+        else:
+            self.record_lap()
+
     def reset_stopwatch(self):
+        # Limpar e esconder a tabela ao resetar
         self.timer.stop()
         self.running = False
         self.elapsed_time = 0
@@ -78,7 +87,7 @@ class Stopwatch(QWidget):
     def record_lap(self):
         # Registra a volta e atualiza a lista de voltas
         lap_time = self.stopwatch_display.text()
-        self.laps.append((lap_time, self.elapsed_time / 1000))  # Armazenar o tempo da volta e o tempo geral
+        self.laps.append((lap_time, self.elapsed_time / 1000))  # Armazena o tempo da volta e o tempo geral
         self.update_lap_list()
         print("Volta registrada:")
         print(f"Voltas: {len(self.laps)}")
@@ -86,7 +95,7 @@ class Stopwatch(QWidget):
         print(f"Tempo Geral: {self.elapsed_time / 1000:.2f} s")
 
     def update_lap_list(self):
-        # Atualiza a lista de voltas
+        # Atualiza a lista de voltas e o tempo geral em tempo real
         lap_info = "Voltas | Tempo das Voltas | Tempo Geral\n"
         total_time = self.elapsed_time / 1000  # Tempo total em segundos
         for i, (lap, lap_time) in enumerate(self.laps, 1):
@@ -101,3 +110,7 @@ class Stopwatch(QWidget):
         milliseconds = current % 1000
         self.time_str = f"{minutes:02}:{seconds:02}:{milliseconds:03}"
         self.stopwatch_display.setText(self.time_str)
+
+        # Atualiza o tempo geral enquanto o cronômetro está rodando
+        self.total_time = current / 1000  # Atualiza o tempo geral
+        self.update_lap_list()
